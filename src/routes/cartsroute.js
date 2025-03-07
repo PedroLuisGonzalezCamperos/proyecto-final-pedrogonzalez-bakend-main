@@ -52,4 +52,27 @@ router.post("/carts", async (req, res) => {
   }
 });
 
+// GET - Obtener un carrito por su _id
+router.get("/carts/:cid", async (req, res) => {
+  try {
+    const { cid } = req.params; // Obtener el ID desde los parámetros
+
+    if (!mongoose.Types.ObjectId.isValid(cid)) {
+      return res.status(400).json({ error: "ID de carrito no válido" });
+    }
+
+    const cart = await Cart.findById(cid).populate("products.id"); // Popular productos
+
+    if (!cart) {
+      return res.status(404).json({ error: "Carrito no encontrado" });
+    }
+
+    res.json(cart);
+  } catch (error) {
+    console.error("❌ Error al obtener el carrito:", error);
+    res.status(500).json({ error: "Error al obtener el carrito", details: error.message });
+  }
+});
+
+
 export default router;
