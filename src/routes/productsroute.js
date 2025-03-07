@@ -5,41 +5,36 @@ const router = express.Router();
 
 router.get("/products", async (req, res) => {
   try {
-    const products = await Product.find();
-    console.log("📩 Productos obtenidos:", products); // 👈 Agrega esto para ver la respuesta
+    const { page = 1, limit = 10 } = req.query;
 
-    if (!Array.isArray(products)) {
-      return res.status(500).json({ error: "La respuesta no es un array válido" });
-    }
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    };
 
-    res.json(products);
+    const result = await Product.paginate({}, options);
+
+    // Renombrar "docs" a "payload"
+    const response = {
+      payload: result.docs, // Aquí renombramos "docs"
+      totalDocs: result.totalDocs,
+      limit: result.limit,
+      totalPages: result.totalPages,
+      page: result.page,
+      pagingCounter: result.pagingCounter,
+      hasPrevPage: result.hasPrevPage,
+      hasNextPage: result.hasNextPage,
+      prevPage: result.prevPage,
+      nextPage: result.nextPage,
+    };
+
+    res.json(response);
   } catch (error) {
     console.error("❌ Error en GET /products:", error);
     res.status(500).json({ error: "Error al obtener productos" });
   }
 });
 
-// POST - Agregar un nuevo producto
-// POST - Agregar un nuevo producto
-router.post("/producto", async (req, res) => {
-  try {
-    console.log("📩 Body recibido:", req.body); // 👈 Para ver qué está llegando en la petición
-
-    const { title, description, code, price, stock } = req.body;
-    
-    if (!title || !description || !code || !price || !stock) {
-      return res.status(400).json({ error: "Faltan campos obligatorios" });
-    }
-
-    const newProduct = new Product({ title, description, code, price, stock });
-    await newProduct.save();
-    res.status(201).json({ message: "Producto agregado", product: newProduct });
-
-  } catch (error) {
-    console.error("❌ Error al agregar producto:", error); // 👈 Muestra el error exacto en la terminal
-    res.status(500).json({ error: "Error al agregar producto", details: error.message });
-  }
-});
 
 
 // GET - Obtener un producto por su _id

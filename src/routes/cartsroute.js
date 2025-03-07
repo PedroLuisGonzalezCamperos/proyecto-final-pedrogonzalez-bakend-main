@@ -75,60 +75,37 @@ router.get("/carts/:cid", async (req, res) => {
 });
 
 // POST - Agregar un producto a un carrito
-router.post("/carts/:cid/product/:pid", async (req, res) => {
+
+router.post("/:cid/product/:pid", async (req, res) => {
   try {
     const { cid, pid } = req.params;
-    const { quantity } = req.body; // La cantidad que se restará del stock
+    const { quantity = 1 } = req.body; // Cantidad opcional en el body, por defecto 1
 
-    if (!mongoose.Types.ObjectId.isValid(cid) || !mongoose.Types.ObjectId.isValid(pid)) {
-      return res.status(400).json({ error: "ID de carrito o producto no válido" });
-    }
-
-    if (!quantity || quantity <= 0) {
-      return res.status(400).json({ error: "La cantidad debe ser mayor a 0" });
-    }
-
-    // Buscar el carrito y el producto
+    // Buscar el carrito
     const cart = await Cart.findById(cid);
-    const product = await Product.findById(pid);
-
     if (!cart) {
       return res.status(404).json({ error: "Carrito no encontrado" });
     }
 
-    if (!product) {
-      return res.status(404).json({ error: "Producto no encontrado" });
-    }
-
-    if (product.stock < quantity) {
-      return res.status(400).json({ error: `Stock insuficiente para el producto ${product.title}` });
-    }
-
-    // Verificar si el producto ya está en el carrito
-    const productIndex = cart.products.findIndex(item => item.id.equals(product._id));
+    // Buscar si el producto ya está en el carrito
+    const productIndex = cart.products.findIndex(p => p.product.toString() === pid);
 
     if (productIndex !== -1) {
-      // Si ya existe, aumentar la cantidad
+      // Si el producto ya existe, sumamos la cantidad
       cart.products[productIndex].quantity += quantity;
     } else {
-      // Si no existe, agregar el producto al carrito
-      cart.products.push({ id: product._id, quantity });
+      // Si el producto no está en el carrito, lo agregamos
+      cart.products.push({ product: pid, quantity });
     }
 
-    // Reducir el stock del producto
-    product.stock -= quantity;
-
-    // Guardar los cambios
     await cart.save();
-    await product.save();
-
     res.json({ message: "Producto agregado al carrito", cart });
-
   } catch (error) {
     console.error("❌ Error al agregar producto al carrito:", error);
-    res.status(500).json({ error: "Error al agregar producto al carrito", details: error.message });
+    res.status(500).json({ error: "Error al agregar producto al carrito" });
   }
 });
+
 
 
 export default router;
